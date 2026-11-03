@@ -5,13 +5,10 @@
 | | |
 |---|---|
 | **Asignatura** | DSY1105 — Desarrollo de Aplicaciones Móviles (Duoc UC) |
-| **Evaluación** | Evaluación Parcial 2 (8%) — trabajo en parejas, semanas 6-11 |
-| **Estudiantes** | **[Nombre estudiante 1]** — **[Nombre estudiante 2]** |
+| **Evaluación** | Evaluación Parcial 2 (8%) — individual, semanas 6-11 |
+| **Estudiante** | **William Zamorano** |
 | **Fecha de entrega** | 31-08-2026 |
 | **Tecnología** | Kotlin · Jetpack Compose · Material 3 · MVVM |
-
-> ⚠️ Reemplaza los campos **[Nombre estudiante 1]** y **[Nombre estudiante 2]** de la tabla
-> por los nombres reales de la pareja antes de subir el repositorio a GitHub.
 
 ---
 
@@ -173,5 +170,5 @@ app/src/main/java/com/example/aquatrackx/
 - **Trello**: tablero de planificación con actividad real (user stories, columnas
   *Por hacer / En curso / Hecho*, fechas y miembros).
 - ⚠️ Según la rúbrica, **no debe haber cambios en el repositorio después de la
-  fecha de entrega** (nota 1.0 automática). La entrega en AVA la realiza un solo
-  miembro de la pareja.
+  fecha de entrega** (nota 1.0 automática). La entrega en AVA la realiza el
+  estudiante autor.
