@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <!-- Fotografías de evidencia capturadas con la cámara (cache/fotos) -->
+    <cache-path
+        name="fotos"
+        path="fotos/" />
+</paths>
