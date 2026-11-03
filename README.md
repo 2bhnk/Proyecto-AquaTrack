@@ -4,11 +4,9 @@
 
 | | |
 |---|---|
-| **Asignatura** | DSY1105 — Desarrollo de Aplicaciones Móviles (Duoc UC) |
-| **Evaluación** | Evaluación Parcial 2 (8%) — individual, semanas 6-11 |
+| **Asignatura** | DSY1105 — Desarrollo de Aplicaciones Móviles |
+| **Evaluación** | Evaluación Parcial 2 (8%) |
 | **Estudiante** | **William Zamorano** |
-| **Fecha de entrega** | 31-08-2026 |
-| **Tecnología** | Kotlin · Jetpack Compose · Material 3 · MVVM |
 
 ---
 
@@ -16,6 +14,7 @@ Todos los datos son **ficticios** y "API" es una simulación local
 (`ChlorineApiSimulada`) que entrega una medición por punto cada 5 minutos.
 
 ### Rangos de cloro libre (MVP)
+1 ppm equivale a 1 miligramo de cloro por cada litro de agua 
 
 | Estado | Rango |
 |---|---|
