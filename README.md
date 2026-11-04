@@ -65,6 +65,4 @@ El APK queda en `app/build/outputs/apk/debug/app-debug.apk`.
 
 ##  Requerimientos externos
 
-- **GitHub**: repositorio público con commits técnicos (ver historial de este repo).
-- **Trello**: tablero de planificación con actividad real (user stories, columnas
-  *Por hacer / En curso / Hecho*, fechas y miembros).
+- **GitHub**: repositorio público con commits técnicos.
