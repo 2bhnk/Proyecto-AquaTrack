@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.History
@@ -49,6 +48,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.example.aquatrackx.data.AppContainer
+import com.example.aquatrackx.data.local.AlertaEntity
 import com.example.aquatrackx.service.NotificationHelper
 import com.example.aquatrackx.ui.AppViewModelFactory
 import com.example.aquatrackx.ui.alertas.AlertasViewModel
@@ -69,6 +69,7 @@ import com.example.aquatrackx.ui.registro.PantallaRegistro
 import com.example.aquatrackx.ui.registro.RegistroMedicionViewModel
 import com.example.aquatrackx.ui.sesion.SesionViewModel
 import com.example.aquatrackx.ui.theme.AquaTrackXTheme
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -106,17 +107,9 @@ private fun Aplicacion(container: AppContainer) {
     val factory = remember { AppViewModelFactory(container) }
     val navController = rememberNavController()
 
-    // ViewModels con alcance de actividad: sobreviven a los cambios de pantalla.
+    // Único ViewModel con alcance de actividad: debe sobrevivir a los cambios
+    // de pantalla y al cierre de sesión.
     val sesionVm: SesionViewModel = viewModel(factory = factory, key = "sesion")
-    val dashboardVm: DashboardViewModel = viewModel(factory = factory, key = "dashboard")
-    val loginVm: LoginViewModel = viewModel(factory = factory, key = "login")
-    val puntosVm: PuntosViewModel = viewModel(factory = factory, key = "puntos")
-    val detalleVm: DetallePuntoViewModel = viewModel(factory = factory, key = "detalle")
-    val registroVm: RegistroMedicionViewModel = viewModel(factory = factory, key = "registro")
-    val alertasVm: AlertasViewModel = viewModel(factory = factory, key = "alertas")
-    val historialVm: HistorialViewModel = viewModel(factory = factory, key = "historial")
-
-    val sesion by sesionVm.uiState.collectAsState()
 
     // ---- Recurso nativo: permiso de notificaciones (Android 13+) ----
     val permisoNotificaciones = rememberLauncherForActivityResult(
@@ -130,29 +123,32 @@ private fun Aplicacion(container: AppContainer) {
         }
     }
 
-    // ---- Notificaciones nativas ante alertas críticas nuevas ----
-    LaunchedEffect(Unit) {
-        dashboardVm.onAlertasCriticas = { criticas ->
-            if (criticas.isNotEmpty()) {
-                alcance.launch {
-                    criticas.forEach { alerta ->
-                        val punto = container.catalogoRepository.punto(alerta.puntoId)
-                        NotificationHelper.notificarAlerta(contexto, alerta, punto)
-                    }
-                }
-            }
+    /** Notifica las alertas críticas nuevas (recurso nativo: notificaciones). */
+    suspend fun notificarCriticas(criticas: List<AlertaEntity>) {
+        criticas.forEach { alerta ->
+            val punto = container.catalogoRepository.punto(alerta.puntoId)
+            NotificationHelper.notificarAlerta(contexto, alerta, punto)
         }
     }
 
     // ---- Sincronización periódica con la API simulada (cada 5 minutos) ----
+    // Vive a nivel de actividad para que las notificaciones funcionen en
+    // cualquier pantalla, no solo dentro del panel.
     LaunchedEffect(Unit) {
         while (true) {
             delay(INTERVALO_SINCRONIZACION_MS)
-            dashboardVm.sincronizar()
+            try {
+                notificarCriticas(container.medicionRepository.sincronizar())
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                // Sin red / API no disponible: se reintenta en el próximo ciclo.
+            }
         }
     }
 
     // ---- Pantalla de arranque mientras se restaura la sesión ----
+    val sesion by sesionVm.uiState.collectAsState()
     if (sesion.cargando) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -212,6 +208,8 @@ private fun Aplicacion(container: AppContainer) {
             modifier = Modifier.padding(padding)
         ) {
             composable(Rutas.LOGIN) {
+                // Se crea aquí para que cada ingreso parta con estado limpio.
+                val loginVm: LoginViewModel = viewModel(factory = factory)
                 PantallaLogin(viewModel = loginVm, onLoginExitoso = {
                     navController.navigate(Rutas.PANEL) {
                         popUpTo(Rutas.LOGIN) { inclusive = true }
@@ -220,6 +218,16 @@ private fun Aplicacion(container: AppContainer) {
             }
 
             composable(Rutas.PANEL) {
+                // Creado al entrar a la pantalla: su init corre con sesión iniciada,
+                // por lo que los datos se cargan correctamente.
+                val dashboardVm: DashboardViewModel = viewModel(factory = factory)
+                LaunchedEffect(dashboardVm) {
+                    dashboardVm.onAlertasCriticas = { criticas ->
+                        alcance.launch {
+                            runCatching { notificarCriticas(criticas) }
+                        }
+                    }
+                }
                 PantallaPanel(
                     viewModel = dashboardVm,
                     onIrAPunto = { id -> navController.navigate(Rutas.detallePunto(id)) }
@@ -227,6 +235,7 @@ private fun Aplicacion(container: AppContainer) {
             }
 
             composable(Rutas.PUNTOS) {
+                val puntosVm: PuntosViewModel = viewModel(factory = factory)
                 PantallaPuntos(
                     viewModel = puntosVm,
                     onIrAPunto = { id -> navController.navigate(Rutas.detallePunto(id)) }
@@ -234,6 +243,7 @@ private fun Aplicacion(container: AppContainer) {
             }
 
             composable(Rutas.ALERTAS) {
+                val alertasVm: AlertasViewModel = viewModel(factory = factory)
                 PantallaAlertas(
                     viewModel = alertasVm,
                     onRegistrarPunto = { id ->
@@ -243,6 +253,7 @@ private fun Aplicacion(container: AppContainer) {
             }
 
             composable(Rutas.HISTORIAL) {
+                val historialVm: HistorialViewModel = viewModel(factory = factory)
                 PantallaHistorial(viewModel = historialVm)
             }
 
@@ -265,6 +276,7 @@ private fun Aplicacion(container: AppContainer) {
                 )
             ) { entradaDetalle ->
                 val puntoId = entradaDetalle.arguments?.getLong("puntoId") ?: 0L
+                val detalleVm: DetallePuntoViewModel = viewModel(factory = factory)
                 PantallaDetallePunto(
                     viewModel = detalleVm,
                     puntoId = puntoId,
@@ -285,6 +297,7 @@ private fun Aplicacion(container: AppContainer) {
                 )
             ) { entradaRegistro ->
                 val puntoId = entradaRegistro.arguments?.getLong("puntoId") ?: 0L
+                val registroVm: RegistroMedicionViewModel = viewModel(factory = factory)
                 PantallaRegistro(
                     viewModel = registroVm,
                     puntoId = puntoId,
